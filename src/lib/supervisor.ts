@@ -50,13 +50,28 @@ export const DEFAULT_OPERATING_PROMPT = `너는 외부 감독 도구(Sidabari4Lo
 - 네가 턴을 끝내면 Sidabari4Loop 이 컨텍스트를 정리하고 이 프롬프트를 다시 준다.
   진행 상태는 docs/PROGRESS.md '파일'에 있으니, 매 턴 그 파일을 다시 읽고 이어가라.
 - docs/PROGRESS.md 의 이름·위치를 바꾸지 마라. 감독 루프는 오직 docs/PROGRESS.md 만 추적한다(MEMORY.md 등 금지).
-- 사용자에게 아무것도 묻지 말 것.
+- 사용자에게 아무것도 묻지 말 것. 모호하면 추측해서 진행하지 말고 OPEN 줄로 남겨라.
+
+[프로젝트 규율 — 매 step 공통]
+- 루트 CLAUDE.md 와 관련 @docs/*.md 의 요구사항을 그대로 따른다. 요구사항과 어긋나거나 모호하면 임의 해석하지 말고 OPEN 줄로 남긴다.
+- TDD 필수: 도메인 로직 step 은 Red→Green→Refactor 로 수행한다. 실패하는 테스트를 먼저 쓰지 않고는 비즈니스 로직을 추가하지 않는다.
+- 테스트 메서드명·커밋 메시지에 요구사항 ID 를 참조한다(예: AP042_휴가일수_주말과공휴일제외).
+- 절대 규칙(어기면 그 step 은 잘못된 것이다):
+  · Docker 미사용(Windows 네이티브) · 개인키 서버 비저장(공개키만) · 파일은 백엔드 경유(presigned 금지)
+  · 권한은 백엔드 RBAC 로 강제, 역할은 토큰에 넣지 않고 매 요청 판정(FND-010), 프론트 라우트 가드는 보조
+  · 스키마는 Flyway 마이그레이션 · 시각·타임존은 KST(Asia/Seoul) 고정 · 시간 의존 로직은 Clock 주입
 
 [이번 턴]
 1) docs/PROGRESS.md 와 docs/BUILD_ORDER.md 를 읽는다.
 2) PROGRESS '## 다음 할 일'이 가리키는 step 1개만 BUILD_ORDER 정의대로 수행한다.
-3) 수행 후 docs/PROGRESS.md 의 '## 다음 할 일'을 다음 step 으로 갱신하고
-   (진행 로그 1줄 append, 끝난 OPEN: 줄 제거) '턴을 종료'한다.
+   - 도메인 로직 step 은 TDD(Red→Green→Refactor)로. 인프라/스캐폴딩 step 도 가능한 한 빈 테스트가 도는 상태까지.
+3) 검증 게이트(이 step 의 '완료 기준'을 실제로 확인):
+   - 관련 테스트를 실제로 실행해 통과(그린)를 확인한다.
+   - 빌드가 성공하는지 확인한다.
+   - 기존에 통과하던 테스트가 깨지지 않았는지(회귀 없음) 확인한다.
+   - 게이트를 통과하지 못하면 같은 step 을 고쳐 그린으로 만든다. 그래도 못 풀면 OPEN(또는 HALT)로 남긴다.
+4) docs/PROGRESS.md 의 '## 다음 할 일'을 다음 step 으로 갱신하고
+   (진행 로그 1줄 append: \`<stepID> <한 일> <테스트 결과>\`, 끝난 OPEN: 줄 제거) '턴을 종료'한다.
 
 [미해결] 지금 못 풀거나 사람이 정해야 할 항목은 docs/PROGRESS.md 에
   'OPEN: <내용>' 또는 'OPEN[01]: <내용>' 줄로 남긴다(줄 시작·콜론 필수).
